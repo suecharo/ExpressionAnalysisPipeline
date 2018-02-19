@@ -84,7 +84,7 @@ class ExpressionAnalysis(object):
             "Expression analysis pipeline created by suecharo."
         help_fastq = "Input all fastq file.(.fastq or .fa or .fa.gz) " + \
                      "(single-end=SRR000001.fq, " + \
-                     "paired-end=SRR000002_1.fq and SRR000002_2.fq)"
+                     "paired-end=SRR000002_1.fq,SRR000002_2.fq)"
         help_fasta = "Input fasta file of .fa or .fasta."
         help_index = "Input HISAT2 index path.(e.g. ./hisat2-index/hg19)"
         help_gtf = "Input gtf file of hg19 or mm9."

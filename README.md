@@ -16,7 +16,7 @@ Pipeline that receives input of multiple fastq files and returns a tsv file with
 ### Fastq Files
 - Multiple single-end · paired-end files can be received at once.
 - Avaliable extensions are `.fq` , `.fastq` , `.fq.gz` .
-- In the case of paired-end, the file names must be `${sample_name}_1.fq` and `${sample_name}_2.fq` .
+- In the case of paired-end, connect two file paths with a comma.
 
 ### Annotation Files
 - You have to specify either Fasta File or build completed HISAT2 index files.
@@ -44,7 +44,7 @@ Expression analysis pipeline created by suecharo.
 
 positional arguments:
   fastq       Input all fastq file.(.fastq or .fa or .fa.gz) (single-
-              end=SRR000001.fq, paired-end=SRR000002_1.fq and SRR000002_2.fq)
+              end=SRR000001.fq, paired-end=SRR000002_1.fq,SRR000002_2.fq)
 
 optional arguments:
   -h, --help  show this help message and exit
@@ -58,7 +58,7 @@ optional arguments:
 ### Execution Command Example
 
 ``` bash
-$ python3 expression_analysis.py -i /home/suecharo/data/expression_analysis/hisat2_index/hg19 -g /home/suecharo/data/expression_analysis/hg19.gtf -o /home/suecharo/analysis/expression_analysis/test -p 20 /home/suecharo/data/expression_analysis/data/SRR951071/SRR951071.fastq /home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_1.fastq /home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_2.fastq
+$ python3 expression_analysis.py -i /home/suecharo/data/expression_analysis/hisat2_index/hg19 -g /home/suecharo/data/expression_analysis/hg19.gtf -o /home/suecharo/analysis/expression_analysis/test -p 20 /home/suecharo/data/expression_analysis/data/SRR951071/SRR951071.fastq /home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_1.fastq,/home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_2.fastq
 ```
 
 ### Differences Between Each Script
