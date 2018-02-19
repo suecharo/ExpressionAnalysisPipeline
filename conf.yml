@@ -1,0 +1,3 @@
+TRIMMOMATIC_PATH : /usr/local/bioinfo_tools/Trimmomatic-0.36/trimmomatic-0.36.jar
+TRIM_ADAPTER_SE : /usr/local/bioinfo_tools/Trimmomatic-0.36/adapters/single_end.fa
+TRIM_ADAPTER_PE : /usr/local/bioinfo_tools/Trimmomatic-0.36/adapters/paired_end.fa
