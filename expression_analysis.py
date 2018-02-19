@@ -16,21 +16,12 @@ import mygene
 CONF_PATH = "./conf.yml"
 
 
-def read_trimmomatic_path():
-    global TRIMMOMATIC_PATH
-    global TRIM_ADAPTER_SE
-    global TRIM_ADAPTER_PE
-    with open(CONF_PATH, "r") as f:
-        data = yaml.load(f)
-        TRIMMOMATIC_PATH = data["TRIMMOMATIC_PATH"]
-        TRIM_ADAPTER_PE = data["TRIM_ADAPTER_PE"]
-        TRIM_ADAPTER_SE = data["TRIM_ADAPTER_SE"]
-
-    return True
-
-
 class ExpressionAnalysis(object):
     def __init__(self):
+        self.trimmomatic_path = None
+        self.adp_pe_path = None
+        self.adp_se_path = None
+
         self.l_fastq = []
         self.fasta_path = None
         self.hisat2_index_path = None
@@ -62,6 +53,7 @@ class ExpressionAnalysis(object):
             self.check_fastq_path()
             self.check_file_path()
             self.echo_input_params()
+            self.read_trimmomatic_path()
             self._log("=== Analysis start. ===")
             if self.hisat2_index_path is None:
                 self.run_hisat2_build()
@@ -162,13 +154,14 @@ class ExpressionAnalysis(object):
                 self.l_sample_single.append(base)
 
             elif fastq.count(",") == 1:   # paired end
-                l_fastq = list(fastq.split(","))
+                l_fastq = []
                 l_base = []
-                for fastq in l_fastq:
+                for fastq in fastq.split(","):
                     if os.path.exists(fastq) is False:
                         msg = "{} is not found.".format(fastq)
                         raise FileNotFoundError(msg)
                     fastq = os.path.abspath(fastq)
+                    l_fastq.append(fastq)
                     filename = os.path.basename(fastq)
                     l_filename = filename.split(".")
                     if len(l_filename) == 2:
@@ -265,6 +258,15 @@ class ExpressionAnalysis(object):
 
         return True
 
+    def read_trimmomatic_path(self):
+        with open(CONF_PATH, "r") as f:
+            data = yaml.load(f)
+            self.trimmomatic_path = data["TRIMMOMATIC_PATH"]
+            self.adp_pe_path = data["TRIM_ADAPTER_PE"]
+            self.adp_se_path = data["TRIM_ADAPTER_SE"]
+
+        return True
+
     def _cmd_wrapper(self, cmd):
         self._log(cmd)
         l_cmd = shlex.split(cmd)
@@ -310,13 +312,13 @@ class ExpressionAnalysis(object):
                     os.path.join(output_dir, "{}_trimed.fastq".format(sample))
                 l_cmd = ["java",
                          "-jar",
-                         TRIMMOMATIC_PATH,
+                         self.trimmomatic_path,
                          "SE",
                          "-threads",
                          self.cpu_num,
                          fastq_path,
                          output_path,
-                         "ILLUMINACLIP:{}:2:40:15".format(TRIM_ADAPTER_SE),
+                         "ILLUMINACLIP:{}:2:40:15".format(self.adp_se_path),
                          "LEADING:20",
                          "TRAILING:20",
                          "SLIDINGWINDOW:4:15",
@@ -329,7 +331,7 @@ class ExpressionAnalysis(object):
         if len(self.l_sample_paired) != 0:
             for i in range(len(self.l_sample_paired)):
                 sample_1, sample_2 = self.l_sample_paired[i]
-                fastq_path_1, fastq_path_2 = self.l_fastq_single
+                fastq_path_1, fastq_path_2 = self.l_fastq_paired[i]
                 length = self._check_fastq_length(fastq_path_1)
                 output_1 = os.path.join(output_dir,
                                         "{}_trimed_1.fastq".format(sample_1))
@@ -341,7 +343,7 @@ class ExpressionAnalysis(object):
                                      "{}_tmp_2.fastq".format(sample_2))
                 l_cmd = ["java",
                          "-jar",
-                         TRIMMOMATIC_PATH,
+                         self.trimmomatic_path,
                          "PE",
                          "-threads",
                          self.cpu_num,
@@ -351,7 +353,7 @@ class ExpressionAnalysis(object):
                          tmp_1,
                          output_2,
                          tmp_2,
-                         "ILLUMINACLIP:{}:2:40:15".format(TRIM_ADAPTER_PE),
+                         "ILLUMINACLIP:{}:2:40:15".format(self.adp_pe_path),
                          "LEADING:20",
                          "TRAILING:20",
                          "SLIDINGWINDOW:4:15",
@@ -359,8 +361,8 @@ class ExpressionAnalysis(object):
                          ]
                 cmd = " ".join(map(str, l_cmd))
                 self._cmd_wrapper(cmd)
-                self.l_fastq_paire[i][0] = output_1
-                self.l_fastq_paire[i][1] = output_2
+                self.l_fastq_paired[i][0] = output_1
+                self.l_fastq_paired[i][1] = output_2
                 os.remove(tmp_1)
                 os.remove(tmp_2)
 
@@ -420,12 +422,12 @@ class ExpressionAnalysis(object):
             for i in range(len(self.l_sample_paired)):
                 sample_1, sample_2 = self.l_sample_paired[i]
                 sample = ""
-                for i in min(len(sample_1), len(sample_2)):
-                    if sample_1[i] == sample_2[i]:
-                        sample += sample_1[i]
+                for j in range(min(len(sample_1), len(sample_2))):
+                    if sample_1[j] == sample_2[j]:
+                        sample += sample_1[j]
                     else:
                         break
-                fastq_path_1, fastq_path_2 = self.l_fastq_single
+                fastq_path_1, fastq_path_2 = self.l_fastq_paired[i]
                 output_path = os.path.join(output_dir, "{}.sam".format(sample))
                 l_cmd = ["hisat2",
                          "-p",
@@ -590,8 +592,12 @@ class ExpressionAnalysis(object):
                      "Strand"]
         for column in l_columns:
             self.columns.append(column)
-            for i, refseq_id in enumerate(self.all_refseq_id):
-                self.data[i].append(d_all_tmp[refseq_id][column])
+            if column in ["Start", "End", "Width"]:
+                for i, refseq_id in enumerate(self.all_refseq_id):
+                    self.data[i].append(int(d_all_tmp[refseq_id][column]))
+            else:
+                for i, refseq_id in enumerate(self.all_refseq_id):
+                    self.data[i].append(d_all_tmp[refseq_id][column])
 
         return True
 
@@ -795,6 +801,5 @@ class ExpressionAnalysis(object):
 
 
 if __name__ == "__main__":
-    read_trimmomatic_path()
     my_expression_analysis = ExpressionAnalysis()
     my_expression_analysis.start()
