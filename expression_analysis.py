@@ -6,19 +6,27 @@ import shlex
 import subprocess
 import sys
 import traceback
-from builtins import dict, int, map, open, range, round, str, zip
 from collections import defaultdict
 from datetime import datetime
 
+import yaml
+
 import mygene
 
+CONF_PATH = "./conf.yml"
 
-TRIMMOMATIC_PATH = \
-    "/usr/local/bioinfo_tools/Trimmomatic-0.36/trimmomatic-0.36.jar"
-TRIM_ADAPTER_SE = \
-    "/usr/local/bioinfo_tools/Trimmomatic-0.36/adapters/single_end.fa"
-TRIM_ADAPTER_PE = \
-    "/usr/local/bioinfo_tools/Trimmomatic-0.36/adapters/paired_end.fa"
+
+def read_trimmomatic_path():
+    global TRIMMOMATIC_PATH
+    global TRIM_ADAPTER_SE
+    global TRIM_ADAPTER_PE
+    with open(CONF_PATH, "r") as f:
+        data = yaml.load(f)
+        TRIMMOMATIC_PATH = data["TRIMMOMATIC_PATH"]
+        TRIM_ADAPTER_PE = data["TRIM_ADAPTER_PE"]
+        TRIM_ADAPTER_SE = data["TRIM_ADAPTER_SE"]
+
+    return True
 
 
 class ExpressionAnalysis(object):
@@ -127,57 +135,66 @@ class ExpressionAnalysis(object):
         return True
 
     def check_fastq_path(self):
-        l_tmp_paired_1 = []
-        l_tmp_paired_2 = []
         for fastq in self.l_fastq:
-            if os.path.exists(fastq) is False:
-                raise FileNotFoundError("{} is not found.".format(fastq))
-            fastq = os.path.abspath(fastq)
-            filename = os.path.basename(fastq)
-            l_filename = filename.split(".")
-            if len(l_filename) == 2:
-                base, ext = l_filename
-                if ext == "fq" or ext == "fastq":
-                    pass
+            if fastq.count(",") == 0:   # single end
+                if os.path.exists(fastq) is False:
+                    raise FileNotFoundError("{} is not found.".format(fastq))
+                fastq = os.path.abspath(fastq)
+                filename = os.path.basename(fastq)
+                l_filename = filename.split(".")
+                if len(l_filename) == 2:
+                    base, ext = l_filename
+                    if ext == "fq" or ext == "fastq":
+                        pass
+                    else:
+                        raise ValueError("{} is wrong format.".format(fastq))
+                elif len(l_filename) >= 3:
+                    base = l_filename[0]
+                    ext_1, ext_2 = l_filename[-2], l_filename[-1]
+                    if (ext_1 == "fq" and ext_2 == "gz") or \
+                            (ext_1 == "fastq" and ext_2 == "gz"):
+                        pass
+                    else:
+                        raise ValueError("{} is wrong format.".format(fastq))
                 else:
                     raise ValueError("{} is wrong format.".format(fastq))
-            elif len(l_filename) == 3:
-                base, ext_1, ext_2 = l_filename
-                if (ext_1 == "fq" and ext_2 == "gz") or \
-                        (ext_1 == "fastq" and ext_2 == "gz"):
-                    pass
-                else:
-                    raise ValueError("{} is wrong format.".format(fastq))
-            else:
-                raise ValueError("{} is wrong format.".format(fastq))
-
-            l_base = base.split("_")
-            if len(base.split("_")) == 1:
                 self.l_fastq_single.append(fastq)
                 self.l_sample_single.append(base)
-            else:
-                base_num = l_base[-1]
-                if base_num == "1":
-                    l_tmp_paired_1.append(fastq)
-                elif base_num == "2":
-                    l_tmp_paired_2.append(fastq)
-                else:
-                    raise ValueError("{} is wrong format.".format(fastq))
 
-        l_tmp_paired_1.sort()
-        l_tmp_paired_2.sort()
-        if len(l_tmp_paired_1) != len(l_tmp_paired_2):
-            raise ValueError("The number of paired_end is different.")
-        for fastq_1, fastq_2 in zip(l_tmp_paired_1, l_tmp_paired_2):
-            filename_1 = os.path.basename(fastq_1)
-            filename_2 = os.path.basename(fastq_2)
-            base_1 = "_".join(filename_1.split("_")[:-1])
-            base_2 = "_".join(filename_2.split("_")[:-1])
-            if base_1 == base_2:
-                self.l_sample_paired.append([base_1 + "_1", base_2 + "_2"])
-                self.l_fastq_paired.append([fastq_1, fastq_2])
+            elif fastq.count(",") == 1:   # paired end
+                l_fastq = list(fastq.split(","))
+                l_base = []
+                for fastq in l_fastq:
+                    if os.path.exists(fastq) is False:
+                        msg = "{} is not found.".format(fastq)
+                        raise FileNotFoundError(msg)
+                    fastq = os.path.abspath(fastq)
+                    filename = os.path.basename(fastq)
+                    l_filename = filename.split(".")
+                    if len(l_filename) == 2:
+                        base, ext = l_filename
+                        if ext == "fq" or ext == "fastq":
+                            pass
+                        else:
+                            msg = "{} is not found.".format(fastq)
+                            raise ValueError(msg)
+                    elif len(l_filename) >= 3:
+                        base = l_filename[0]
+                        ext_1, ext_2 = l_filename[-2], l_filename[-1]
+                        if (ext_1 == "fq" and ext_2 == "gz") or \
+                                (ext_1 == "fastq" and ext_2 == "gz"):
+                            pass
+                        else:
+                            msg = "{} is not found.".format(fastq)
+                            raise ValueError(msg)
+                    else:
+                        raise ValueError("{} is wrong format.".format(fastq))
+                    l_base.append(base)
+                self.l_fastq_paired.append(l_fastq)
+                self.l_sample_paired.append(l_base)
+
             else:
-                raise ValueError("The number of paired_end is different.")
+                raise FileNotFoundError("{} is not found.".format(fastq))
 
         return True
 
@@ -402,7 +419,12 @@ class ExpressionAnalysis(object):
         if len(self.l_sample_paired) != 0:
             for i in range(len(self.l_sample_paired)):
                 sample_1, sample_2 = self.l_sample_paired[i]
-                sample = "_".join(sample_1.split("_")[:-1])
+                sample = ""
+                for i in min(len(sample_1), len(sample_2)):
+                    if sample_1[i] == sample_2[i]:
+                        sample += sample_1[i]
+                    else:
+                        break
                 fastq_path_1, fastq_path_2 = self.l_fastq_single
                 output_path = os.path.join(output_dir, "{}.sam".format(sample))
                 l_cmd = ["hisat2",
@@ -773,5 +795,6 @@ class ExpressionAnalysis(object):
 
 
 if __name__ == "__main__":
+    read_trimmomatic_path()
     my_expression_analysis = ExpressionAnalysis()
     my_expression_analysis.start()
