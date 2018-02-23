@@ -15,8 +15,8 @@ import mygene
 
 
 class ExpressionAnalysis(object):
-    CONF_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__),
-                             "conf.yml"))
+    CONF_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "conf.yml")
 
     def __init__(self):
         self.trimmomatic_path = None
