@@ -13,10 +13,11 @@ import yaml
 
 import mygene
 
-CONF_PATH = "./conf.yml"
-
 
 class ExpressionAnalysis(object):
+    CONF_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__),
+                             "conf.yml"))
+
     def __init__(self):
         self.trimmomatic_path = None
         self.adp_pe_path = None
@@ -259,7 +260,7 @@ class ExpressionAnalysis(object):
         return True
 
     def read_trimmomatic_path(self):
-        with open(CONF_PATH, "r") as f:
+        with open(ExpressionAnalysis.CONF_PATH, "r") as f:
             data = yaml.load(f)
             self.trimmomatic_path = data["TRIMMOMATIC_PATH"]
             self.adp_pe_path = data["TRIM_ADAPTER_PE"]
