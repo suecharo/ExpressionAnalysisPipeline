@@ -1,19 +1,21 @@
 #!/bin/env python
 # coding: utf-8
 
+import argparse
+import glob
+import os
 import sys
 import traceback
-import argparse
 from collections import defaultdict
+
 import mygene
-import os
 
 from expression_analysis import ExpressionAnalysis
 
 
 class ExpressionAnalysisBam(ExpressionAnalysis):
     def __init__(self):
-        self.l_bam_path = []
+        self.bam_dir = None
         self.gtf_path = None
         self.output_dir_path = None
         self.cpu_num = None
@@ -52,7 +54,7 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
     def get_args(self):
         argparse_description = \
             "Expression analysis pipeline created by suecharo."
-        help_bam = "Input all sorted bam file."
+        help_bam = "Input sorted bam dir."
         help_gtf = "Input gtf file of hg19 or mm9."
         help_output = "Enter output dir.(default=./output)"
         help_cpu = "Input cpu num.(default=4)"
@@ -66,7 +68,7 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
                             help=help_cpu)
         args = parser.parse_args()
 
-        self.l_bam_path = args.bam
+        self.bam_dir = args.bam
         self.gtf_path = args.g[0]
         self.output_dir_path = args.o
         if self.output_dir_path is None:
@@ -82,25 +84,22 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
         return True
 
     def check_file_path(self):
-        l_tmp = []
-        for bam_path in self.l_bam_path:
-            if os.path.exists(bam_path):
-                bam_path = os.path.abspath(bam_path)
-                filename = os.path.basename(bam_path)
-                l_filename = filename.split(".")
-                sample_name = l_filename[0]
-                ext = l_filename[-1]
-                if ext == "bam":
-                    pass
-                else:
-                    msg = "{} is wrong format.".format(bam_path)
-                    raise ValueError(msg)
-                l_tmp.append(bam_path)
+        files = glob.glob(self.bam_dir)
+        for s_file in files:
+            bam_path = os.path.abspath(s_file)
+            filename = os.path.basename(bam_path)
+            l_filename = filename.split(".")
+            sample_name = l_filename[0]
+            ext = l_filename[-1]
+            if ext == "bam":
+                self.l_bam_path.append(bam_path)
                 self.l_sample.append(sample_name)
             else:
-                msg = "{} is not found.".format(bam_path)
-                raise FileNotFoundError(msg)
-        self.l_bam_path = l_tmp
+                pass
+
+        if len(self.l_bam_path) == 0:
+            msg = "bam file is not found."
+            raise FileNotFoundError(msg)
 
         if os.path.exists(self.gtf_path):
             self.gtf_path = os.path.abspath(self.gtf_path)
