@@ -60,8 +60,7 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
         help_cpu = "Input cpu num.(default=4)"
 
         parser = argparse.ArgumentParser(description=argparse_description)
-        parser.add_argument("bam", nargs=1, required=True, metavar="BAM_DIR",
-                            help=help_bam)
+        parser.add_argument("bam", nargs=1, metavar="BAM_DIR", help=help_bam)
         parser.add_argument("-g", nargs=1, required=True, metavar="GTF",
                             help=help_gtf)
         parser.add_argument("-o", nargs=1, metavar="OUTPUT", help=help_output)
