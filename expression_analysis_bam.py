@@ -2,7 +2,6 @@
 # coding: utf-8
 
 import argparse
-import glob
 import os
 import sys
 import traceback
@@ -68,7 +67,7 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
                             help=help_cpu)
         args = parser.parse_args()
 
-        self.bam_dir = args.bam
+        self.bam_dir = args.bam[0]
         self.gtf_path = args.g[0]
         self.output_dir_path = args.o
         if self.output_dir_path is None:
@@ -84,8 +83,9 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
         return True
 
     def check_file_path(self):
-        files = glob.glob(self.bam_dir)
+        files = os.listdir(self.bam_dir)
         for s_file in files:
+            print(s_file)
             bam_path = os.path.abspath(s_file)
             filename = os.path.basename(bam_path)
             l_filename = filename.split(".")
