@@ -37,6 +37,7 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
             self.check_file_path()
             self.echo_input_params()
             self._log("=== Analysis start. ===")
+            self.run_samtools_sort()
             self.run_stringtie()
             self.format_gtf_to_tsv()
             self.merge_tsv()
@@ -85,7 +86,6 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
     def check_file_path(self):
         files = os.listdir(self.bam_dir)
         for s_file in files:
-            print(s_file)
             bam_path = os.path.abspath(s_file)
             filename = os.path.basename(bam_path)
             l_filename = filename.split(".")
@@ -132,6 +132,31 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
 
         return True
 
+    def run_samtools_sort(self):
+        self._log("Samtools sort start.")
+        output_dir = os.path.join(self.output_dir_path, "bam_file_sorted")
+        os.mkdir(output_dir)
+        l_sorted_path = []
+        for i in range(len(self.l_sample)):
+            sample = self.l_sample[i]
+            bam_path = self.l_bam_path[i]
+            output_path = os.path.join(output_dir,
+                                       "{}_sorted.bam".format(sample))
+            l_cmd = ["samtools",
+                     "sort",
+                     "-@",
+                     self.cpu_num,
+                     "-o",
+                     output_path,
+                     bam_path
+                     ]
+            cmd = " ".join(map(str, l_cmd))
+            self._cmd_wrapper(cmd)
+            l_sorted_path.append(output_path)
+
+        self.l_bam_path = l_sorted_path
+
+        return True
 
 if __name__ == "__main__":
     my_expression_analysis = ExpressionAnalysisBam()
