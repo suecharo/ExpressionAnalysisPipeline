@@ -84,9 +84,10 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
         return True
 
     def check_file_path(self):
+        self.bam_dir = os.path.abspath(self.bam_dir)
         files = os.listdir(self.bam_dir)
         for s_file in files:
-            bam_path = os.path.abspath(s_file)
+            bam_path = os.path.join(self.bam_dir, s_file)
             filename = os.path.basename(bam_path)
             l_filename = filename.split(".")
             sample_name = l_filename[0]
