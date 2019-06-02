@@ -12,12 +12,32 @@ Pipeline that receives input of multiple fastq files and returns a tsv file with
 ## Pipeline Flow Diagram
 ![flow.png](https://github.com/suecharo/ExpressionAnalysisPipeline/raw/master/flow.png)
 
-## Input Files
-### Fastq Files
-- Multiple single-end · paired-end files can be received at once.
-- Avaliable extensions are `.fq` , `.fastq` , `.fq.gz` .
-- In the case of paired-end, connect two file paths with a comma.
+## Column of Output Data
+- RefSeq_ID
+- each_FPKM
+- each_TPM
+- each_Coverage
+- Gene_ID
+- Chromosome
+- Start
+- End
+- Width
+- Strand
+- Entrez_Gene_ID
+- Description
+- Cellular_Component_Accession
+- Cellular_Component_Name
+- Molecular_Function_Accession
+- Molecular_Function_Name
+- Biological_Process_Accession
+- Biological_Process_Name
 
+## Output Example
+![output_1.png](https://github.com/suecharo/ExpressionAnalysisPipeline/raw/master/output_1.png)
+
+![otuput_2.png](https://github.com/suecharo/ExpressionAnalysisPipeline/raw/master/output_2.png)
+
+## Input Files
 ### Annotation Files
 - You have to specify either Fasta File or build completed HISAT2 index files.
 - You must enter the gtf / gff file.
@@ -32,7 +52,19 @@ TRIM_ADAPTER_PE : /usr/local/bioinfo_tools/Trimmomatic-0.36/adapters/paired_end.
 ```
 
 ## Usage
-### Help Message
+### From Fastq
+#### Differences Between Each Script
+- expression_analysis.py
+    - Process all isoforms.
+- expression_analysis_longest.py
+    - Process the longest isoform.
+
+#### Fastq Files
+- Multiple single-end · paired-end files can be received at once.
+- Avaliable extensions are `.fq` , `.fastq` , `.fq.gz` .
+- In the case of paired-end, connect two file paths with a comma.
+
+#### Help Message
 
 ```
 $ python3 expression_analysis.py --help
@@ -55,39 +87,47 @@ optional arguments:
   -p CPU      Input cpu num.(default=4)
 ```
 
-### Execution Command Example
+#### Execution Command Example
 
 ``` bash
-$ python3 expression_analysis.py -i /home/suecharo/data/expression_analysis/hisat2_index/hg19 -g /home/suecharo/data/expression_analysis/hg19.gtf -o /home/suecharo/analysis/expression_analysis/test -p 20 /home/suecharo/data/expression_analysis/data/SRR951071/SRR951071.fastq /home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_1.fastq,/home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_2.fastq
+$ python3 expression_analysis.py \
+-i /home/suecharo/data/expression_analysis/hisat2_index/hg19 \
+-g /home/suecharo/data/expression_analysis/hg19.gtf \
+-o /home/suecharo/analysis/expression_analysis/test \
+-p 20 \
+/home/suecharo/data/expression_analysis/data/SRR951071/SRR951071.fastq \
+/home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_1.fastq,/home/suecharo/data/expression_analysis/data/SRR951072/SRR951072_2.fastq
 ```
 
-### Differences Between Each Script
-- expression_analysis.py
-    - Process all isoforms.
-- expression_analysis_longest.py
-    - Process the longest isoform.
+### From Bam
+#### Fastq Files
+- The directory of the non-sorted bam file is taken as input.
+- Perhaps even if it is sorted.
 
-### Column of Output Data
-- RefSeq_ID
-- each_FPKM
-- each_TPM
-- each_Coverage
-- Gene_ID
-- Chromosome
-- Start
-- End
-- Width
-- Strand
-- Entrez_Gene_ID
-- Description
-- Cellular_Component_Accession
-- Cellular_Component_Name
-- Molecular_Function_Accession
-- Molecular_Function_Name
-- Biological_Process_Accession
-- Biological_Process_Name
+#### Help Message
 
-### Output Example
-![output_1.png](https://github.com/suecharo/ExpressionAnalysisPipeline/raw/master/output_1.png)
+```
+$ python3 expression_analysis_bam.py  --help
+usage: expression_analysis_bam.py [-h] -g GTF [-o OUTPUT] [-p CPU] BAM_DIR
 
-![otuput_2.png](https://github.com/suecharo/ExpressionAnalysisPipeline/raw/master/output_2.png)
+Expression analysis pipeline created by suecharo.
+
+positional arguments:
+  BAM_DIR     Input sorted bam dir.
+
+optional arguments:
+  -h, --help  show this help message and exit
+  -g GTF      Input gtf file of hg19 or mm9.
+  -o OUTPUT   Enter output dir.(default=./output)
+  -p CPU      Input cpu num.(default=4)
+```
+
+#### Execution Command Example
+
+``` bash
+python3 /app/pipeline/ExpressionAnalysisPipeline/expression_analysis_bam.py  \
+-g /data/share/reference/ensembl/Mus_musculus.GRCm38.87.v2.gtf \
+-p 10 \
+-o ./bam_test \
+./bam_files
+```
