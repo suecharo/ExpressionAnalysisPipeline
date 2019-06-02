@@ -44,6 +44,9 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
             self.get_entrez_info()
             self.get_go_info()
             self.dump_tsv()
+            self.dump_tsv_FPKM()
+            self.dump_tsv_TPM()
+            self.dump_tsv_Coverage()
             self._log("=== Analysis finish. ===")
         except:
             traceback.print_exc()
@@ -162,3 +165,4 @@ class ExpressionAnalysisBam(ExpressionAnalysis):
 if __name__ == "__main__":
     my_expression_analysis = ExpressionAnalysisBam()
     my_expression_analysis.start()
+

@@ -1,5 +1,3 @@
-#!/bin/env python
-# coding: utf-8
 import argparse
 import os
 import shlex
@@ -67,6 +65,9 @@ class ExpressionAnalysis(object):
             self.get_entrez_info()
             self.get_go_info()
             self.dump_tsv()
+            self.dump_tsv_FPKM()
+            self.dump_tsv_TPM()
+            self.dump_tsv_Coverage()
             self._log("=== Analysis finish. ===")
         except:
             traceback.print_exc()
@@ -448,13 +449,13 @@ class ExpressionAnalysis(object):
                 self.l_sample.append(sample)
                 self.l_sam_path.append(output_path)
 
-        l_sample_sorted = sorted(self.l_sample)
-        l_sam_path_sorted = []
-        for sample in l_sample_sorted:
-            ind = self.l_sample.index(sample)
-            l_sam_path_sorted.append(self.l_sam_path[ind])
-        self.l_sample = l_sample_sorted
-        self.l_sam_path = l_sam_path_sorted
+        # l_sample_sorted = sorted(self.l_sample)
+        # l_sam_path_sorted = []
+        # for sample in l_sample_sorted:
+        #     ind = self.l_sample.index(sample)
+        #     l_sam_path_sorted.append(self.l_sam_path[ind])
+        # self.l_sample = l_sample_sorted
+        # self.l_sam_path = l_sam_path_sorted
 
         return True
 
@@ -509,7 +510,7 @@ class ExpressionAnalysis(object):
         output_dir = os.path.join(self.output_dir_path, "formated_tsv")
         os.mkdir(output_dir)
         l_columns = ["Chromosome", "Start", "End", "Width", "Strand",
-                     "Gene_ID", "RefSeq_ID", "Coverage", "FPKM", "TPM"]
+                     "Gene_ID", "RefSeq_ID", "Gene_Symbol", "Coverage", "FPKM", "TPM"]
         for i in range(len(self.l_sample)):
             sample = self.l_sample[i]
             gtf_path = self.l_gtf_path[i]
@@ -531,7 +532,7 @@ class ExpressionAnalysis(object):
                         l_write.append(str(int(l_line[4]) - int(l_line[3])))
                         l_write.append(l_line[6])
                         l_misc = l_line[8].split(";")
-                        for i in [0, 1, 3, 4, 5]:
+                        for i in [0, 1, 2, 3, 4, 5]:
                             l_write.append(l_misc[i].split('"')[1])
                         all_write.append("\t".join(l_write))
 
@@ -544,8 +545,8 @@ class ExpressionAnalysis(object):
         self._log("Merge tsv start.")
         l_dict = []
         tmp_columns = ["Chromosome", "Start", "End", "Width", "Strand",
-                       "Gene_ID", "Coverage", "FPKM", "TPM"]
-        tmp_index = [0, 1, 2, 3, 4, 5, 7, 8, 9]
+                       "Gene_ID", "Gene_Symbol", "Coverage", "FPKM", "TPM"]
+        tmp_index = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10]
         d_all_tmp = defaultdict(lambda: defaultdict(lambda: None))
 
         for tsv_path in self.l_tsv_path:
@@ -589,7 +590,7 @@ class ExpressionAnalysis(object):
                     self.data[i].append(tmp_dict[refseq_id]["TPM"])
                     self.data[i].append(tmp_dict[refseq_id]["Coverage"])
 
-        l_columns = ["Gene_ID", "Chromosome", "Start", "End", "Width",
+        l_columns = ["Gene_ID", "Gene_Symbol", "Chromosome", "Start", "End", "Width",
                      "Strand"]
         for column in l_columns:
             self.columns.append(column)
@@ -800,7 +801,67 @@ class ExpressionAnalysis(object):
 
         return True
 
+    def dump_tsv_FPKM(self):
+        self._log("Start dump tsv FPKM.")
+        output_path = os.path.join(self.output_dir_path, "analysed_FPKM.tsv")
+        l_write = []
+        l_column_id_fpkm = []
+        for ind, column in enumerate(self.columns):
+            if "TPM" in column or "Coverage" in column:
+                continue
+            else:
+                l_column_id_fpkm.append(ind)
+        l_write.append("\t".join(map(str, [self.columns[ind] for ind in l_column_id_fpkm])))
+        for row in self.data:
+            l_write.append("\t".join(map(str, [row[ind] for ind in l_column_id_fpkm])))
+        s_write = "\n".join(l_write)
+        with open(output_path, "w") as f:
+            f.write(s_write)
+
+        return True
+
+    def dump_tsv_TPM(self):
+        self._log("Start dump tsv TPM.")
+        output_path = os.path.join(self.output_dir_path, "analysed_TPM.tsv")
+        l_write = []
+        l_column_id_tpm = []
+        for ind, column in enumerate(self.columns):
+            if "FPKM" in column or "Coverage" in column:
+                continue
+            else:
+                l_column_id_tpm.append(ind)
+        l_write.append("\t".join(map(str, [self.columns[ind] for ind in l_column_id_tpm])))
+        for row in self.data:
+            l_write.append("\t".join(map(str, [row[ind] for ind in l_column_id_tpm])))
+        s_write = "\n".join(l_write)
+        with open(output_path, "w") as f:
+            f.write(s_write)
+
+        return True
+
+    def dump_tsv_Coverage(self):
+        self._log("Start dump tsv Coverage.")
+        output_path = os.path.join(self.output_dir_path, "analysed_Coverage.tsv")
+        l_write = []
+        l_column_id_cov = []
+        for ind, column in enumerate(self.columns):
+            if "FPKM" in column or "TPM" in column:
+                continue
+            else:
+                l_column_id_cov.append(ind)
+        l_write.append("\t".join(map(str, [self.columns[ind] for ind in l_column_id_cov])))
+        for row in self.data:
+            l_write.append("\t".join(map(str, [row[ind] for ind in l_column_id_cov])))
+        s_write = "\n".join(l_write)
+        with open(output_path, "w") as f:
+            f.write(s_write)
+
+        return True
+
+
+
 
 if __name__ == "__main__":
     my_expression_analysis = ExpressionAnalysis()
     my_expression_analysis.start()
+
